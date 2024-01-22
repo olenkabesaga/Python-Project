@@ -1,0 +1,129 @@
+---
+title: Zillow Project - Olenka Besaga
+ECO 590
+Spring 2023
+output: html_notebook
+---
+```{r}
+#import the libraries I need
+library(tidyverse)
+library(dplyr)
+library(stargazer)
+```
+
+```{r}
+#set my working directory 
+#exported the zillow data
+setwd('/Users/olenkabesaga/Desktop/ECO 590')
+read.csv('zillow_nys_data.csv')
+```
+
+```{r}
+#named the zillow data to be called nys
+nys <- read.csv('zillow_nys_data.csv')
+```
+
+```{r}
+#the title column names to show me what variables this dataset has
+names(nys)
+```
+---------Data cleaning------
+```{r}
+#i changed two variables, "AttachedGarageYN" and "PoolPrivateYN" from true/false to 0,1
+nys$AttachedGarageYN <- as.integer(as.logical(nys$AttachedGarageYN))
+#https://www.statology.org/r-convert-true-false-to-1-0/
+
+nys$PoolPrivateYN <- as.integer(as.logical(nys$PoolPrivateYN))
+#I renamed the two varibales from "PoolPrivateYN" to "pool" and "AttachedGarageYN" to "garage"
+nys <-rename(nys, pool=PoolPrivateYN , garage= AttachedGarageYN)
+```
+
+##Filtered for residential property type
+```{r}
+#I created a new dataframe called "nys_res" and filtered for Residential properties
+nys_res <-filter(nys, PropertyType == 'Residential')
+```
+
+```{r}
+# variable names in the most recent cleaned dataframe
+names(nys_res)
+```
+
+-----REGRESSIONS------
+
+## Regression 1- only on residential properties
+## with interest variables from data set nys_res
+```{r}
+ols1 = lm(log(OriginalListPrice) ~ Electric + Forced.Air + Wood + Heat.Pump + Boiler, data = nys_res)
+summary(ols1)
+```
+
+
+## Regression 2-  residenital properties
+## from data set nys_res 
+```{r}
+ols2 = lm(log(OriginalListPrice) ~ Electric + Forced.Air + Wood + Heat.Pump + Boiler + LotSizeSquareFeet + + I(LotSizeSquareFeet^2) + BedroomsTotal + pool + years.old, data = nys_res)
+summary(ols2)
+```
+## Regression 3-  residenital properties
+## from data set nys_res - final
+```{r}
+ols3 = lm(log(OriginalListPrice) ~ Electric + Forced.Air + Wood + Heat.Pump + Boiler + DaysOnMarket + LotSizeSquareFeet + + I(LotSizeSquareFeet^2) + BedroomsTotal + pool + garage + Stories + years.old + log(TaxAnnualAmount), data = nys_res)
+summary(ols3)
+```
+-- SQFT Squared math 
+-0.001 + 0.00000^2(sqft)
+```{r}
+0.00000*2
+```
+-0.001 + 0.00000(1000)
+```{r}
+0.00000*1000
+```
+```{r}
+-0.001 + 0
+```
+
+---Coefficient Interpretation  
+Electric: On average, if a property has an Electric as a type of heating, there is an increase of 16.3% in the price of the property 
+Forced.Air: On average, if a property has a forced air as a type of heating, there is an increase of 21.8% in the price of the property 
+Wood: On average, if a property has a wood as a type of heating, there is an decrease of 9% in the price of the property
+Heat.Pump: On average, if a property has a heat pump as a type of heating, there is an decrease of 4% in the price of the property
+Boiler: On average, if a property has a boiler as a type of heating, there is an decrease of 23% in the price of the property 
+DaysOnMarket: For every additional day the residential property is on the market, there is a decrease of 0.1% in the price on the property, on average, holding all else of the variables constant. 
+LotSizeSquareFeet: on average, for every one square foot increase, there is a decrease of 0.1% in the price on the property, holding all else equal.
+LotSizeSquareFeet^2:For a property with 1000 square feet, there is a decrease of 0.1% in the price on the property holding all else constant.
+BedroomsTotal: for every additional bedroom in the residential property, there is a decrease of 9.4% in the price on the property on average, holding all else constant.
+pool: On average if the residential property has a pool, there is a decrease of 5% in the price on the property, holding all else constant.
+garage: On average if the residential property has a garage, there is a increase of 13.8% in the price on the property, holding all else constant.
+Stories: For every additional story in the residential property, there is a increase of 3.5% in the price on the property, holding all else constant.
+years.old: For every additional year the property has, there is an increase of 0.02% in the price on the property, holding all else constant.
+log TaxAnnualAmount: For one percentage change in annual tax, there is a decrease of 0.17% in the price on the property, holding all the other variables constant.
+
+The data and the variables were found to be not statiscally significant at any of the 3 significant levels. There was no statistical significant relationship or effect on the outcome of price.
+A few reasons why this explains why the data is showing those results and is not significant:
+The sample size: the sample size might be too small for this type of research.
+Poor data collection: Data has errors, perhaps outliers, and suffers from measurement biases. This produces not statistically significant results and misleading conclusions.
+Sampling/Selection and Presentation Bias: this data might have suffered from this, the data used for analysis was not randomly or representatively sampled
+Confounding variables: other controlling factors are not taken into consideration, or factors that have an impact on both the price and the independent variables, might have been the reason for the findings without statistical significance. Results from the analysis were inaccurate and inconclusive due to this
+
+## Stargazer - making a pretty Regression table
+```{r}
+stargazer(ols1,ols2,ols3, type = "text",  title = "My Data Models")  
+
+```
+
+```{r}
+library(stargazer)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+
+
+stargazer(ols1, ols2, ols3, type = "html", out = "Final Project Regression.html", column.labels = c("Regression 1", "Regression 2", "Final Regression"), model.names = FALSE,
+          title = "Data Results",
+          covariate.labels = c("Electric", "Forced Air", "Wood", "Heat Pump", "Boiler", "Total Days On Market", "Lot Size Square Feet" ,"Lot Size Square Feet Squared", "Bedrooms Total", "Pool", "Garage", "Stories", "Age of Property", " Log Tax Annual Amount", "Constant"),
+          dep.var.labels   = "Listing Price",
+          notes= "Source: Bridge Interactive, Zillow API")
+```
+
+
+
